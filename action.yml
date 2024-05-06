@@ -1,0 +1,84 @@
+name: Docker Image Publisher
+author: 'Kaijie Yu'
+description: Build and push tagged Docker image to a Registry.
+
+branding:
+  icon: 'truck'
+  color: 'white'
+
+inputs:
+  registry:
+    description: |-
+      The specific image registry to push.
+      e.g., "ghcr.io" for Github Container Registry
+      If you don't provide one, the image will be pushed to Docker Hub.
+    required: false
+    default: ''
+  image_name:
+    description: Docker image name.
+    required: false
+    default: ${{ github.repository }}
+  username:
+    description: Registry's username.
+    required: true
+  token:
+    description: Registry's token secrect.
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to the Docker Hub
+      if: inputs.registry == ''
+      uses: docker/login-action@v3
+      with:
+        username: ${{ inputs.username }}
+        password: ${{ inputs.token }}
+
+    - name: Login to the Github Container Registry
+      if: inputs.registry == 'ghcr.io'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.token }}
+
+    - name: Prepare Images
+      id: prepare-images
+      shell: sh
+      run: |
+          registry="${{ inputs.registry }}"
+          image_name="${{ inputs.image_name }}"
+          if [ -z "$registry" ]; then
+            echo "images=$image_name" >> $GITHUB_OUTPUT
+          else
+            echo "images=$registry/$image_name" >> $GITHUB_OUTPUT
+          fi
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: metadata
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ steps.prepare-images.outputs.images }}
+
+    - name: Build and Push Docker image
+      id: push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.metadata.outputs.tags }}
+        labels: ${{ steps.metadata.outputs.labels }}
+
+    - name: Generate Artifact Attestation
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-name: ${{ inputs.registry }}/${{ inputs.image_name }}
+        subject-digest: ${{ steps.push.outputs.digest }}
+        push-to-registry: true
