@@ -50,22 +50,22 @@ runs:
         password: ${{ inputs.token }}
 
     - name: Prepare Images
-      id: prepare-images
+      id: prepare-image
       shell: sh
       run: |
           registry="${{ inputs.registry }}"
           image_name="${{ inputs.image_name }}"
           if [ -z "$registry" ]; then
-            echo "images=$image_name" >> $GITHUB_OUTPUT
+            echo "image=$image_name" >> $GITHUB_OUTPUT
           else
-            echo "images=$registry/$image_name" >> $GITHUB_OUTPUT
+            echo "image=$registry/$image_name" >> $GITHUB_OUTPUT
           fi
 
     - name: Extract metadata (tags, labels) for Docker
       id: metadata
       uses: docker/metadata-action@v5
       with:
-        images: ${{ steps.prepare-images.outputs.images }}
+        images: ${{ steps.prepare-image.outputs.image }}
 
     - name: Build and Push Docker image
       id: push
@@ -79,6 +79,6 @@ runs:
     - name: Generate Artifact Attestation
       uses: actions/attest-build-provenance@v1
       with:
-        subject-name: ${{ inputs.registry }}/${{ inputs.image_name }}
+        subject-name: ${{ steps.prepare-image.outputs.image }}
         subject-digest: ${{ steps.push.outputs.digest }}
         push-to-registry: true
