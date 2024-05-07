@@ -76,3 +76,11 @@ runs:
         provenance: mode=max
         tags: ${{ steps.metadata.outputs.tags }}
         labels: ${{ steps.metadata.outputs.labels }}
+
+    - name: Generate Artifact Attestation
+      if: inputs.registry == 'ghcr.io'
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-name: ${{ steps.prepare-image.outputs.image }}
+        subject-digest: ${{ steps.push.outputs.digest }}
+        push-to-registry: true
