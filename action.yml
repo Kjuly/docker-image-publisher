@@ -83,4 +83,4 @@ runs:
       with:
         subject-name: ${{ steps.prepare-image.outputs.image }}
         subject-digest: ${{ steps.push.outputs.digest }}
-        push-to-registry: true
+        push-to-registry: false
