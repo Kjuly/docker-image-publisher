@@ -18,6 +18,10 @@ inputs:
     description: Docker image name.
     required: false
     default: ${{ github.repository }}
+  dockerfile:
+    description: A specific Dockerfile to build with.
+    required: false
+    default: './Dockerfile'
   username:
     description: Registry's username.
     required: true
@@ -72,6 +76,7 @@ runs:
       uses: docker/build-push-action@v5
       with:
         context: .
+        file: ${{ inputs.dockerfile }}
         push: true
         provenance: mode=max
         tags: ${{ steps.metadata.outputs.tags }}
